@@ -1,6 +1,7 @@
 {
-  "name": "vela-store",
+  "name": "Pretty Picks",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "tsx server/index.ts",
@@ -29,7 +30,6 @@
     "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^5.0.2",
     "concurrently": "^9.2.1",
-    "prisma": "^6.15.0",
     "tsx": "^4.19.4",
     "typescript": "^5.9.2",
     "vite": "^7.1.3"
