@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id            Int       @id @default(autoincrement())
+  name          String
+  slug          String    @unique
+  description   String
+  price         Float
+  originalPrice Float?
+  stock         Int      @default(0)
+  sku           String?  @unique
+  image         String
+  active        Boolean  @default(true)
+  featured      Boolean  @default(false)
+  bestseller    Boolean  @default(false)
+  categoryId    Int?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  orderItems    OrderItem[]
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  orderNumber     String      @unique
+  customerName    String
+  phone           String
+  email           String
+  address         String
+  city            String
+  state           String
+  pincode         String
+  subtotal        Float
+  shipping        Float
+  total           Float
+  paymentStatus   String      @default("PENDING")
+  orderStatus     String      @default("PENDING")
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  name      String
+  price     Float
+  quantity  Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
