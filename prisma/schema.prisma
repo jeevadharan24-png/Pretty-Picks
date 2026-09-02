@@ -3,10 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
-
 model Admin {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -27,38 +27,38 @@ model Product {
   description   String
   price         Float
   originalPrice Float?
-  stock         Int      @default(0)
-  sku           String?  @unique
+  stock         Int       @default(0)
+  sku           String?   @unique
   image         String
-  active        Boolean  @default(true)
-  featured      Boolean  @default(false)
-  bestseller    Boolean  @default(false)
+  active        Boolean   @default(true)
+  featured      Boolean   @default(false)
+  bestseller    Boolean   @default(false)
   categoryId    Int?
   category      Category? @relation(fields: [categoryId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   orderItems    OrderItem[]
 }
 
 model Order {
-  id              Int         @id @default(autoincrement())
-  orderNumber     String      @unique
-  customerName    String
-  phone           String
-  email           String
-  address         String
-  city            String
-  state           String
-  pincode         String
-  subtotal        Float
-  shipping        Float
-  total           Float
-  paymentStatus   String      @default("PENDING")
-  orderStatus     String      @default("PENDING")
-  razorpayOrderId String?
+  id                Int         @id @default(autoincrement())
+  orderNumber       String      @unique
+  customerName      String
+  phone             String
+  email             String
+  address           String
+  city              String
+  state             String
+  pincode           String
+  subtotal          Float
+  shipping          Float
+  total             Float
+  paymentStatus     String      @default("PENDING")
+  orderStatus       String      @default("PENDING")
+  razorpayOrderId   String?
   razorpayPaymentId String?
-  items           OrderItem[]
-  createdAt       DateTime    @default(now())
+  items             OrderItem[]
+  createdAt         DateTime    @default(now())
 }
 
 model OrderItem {
