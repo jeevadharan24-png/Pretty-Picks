@@ -52,7 +52,7 @@ const instagramUrl = "https://www.instagram.com/prettypicks05/";
 
 /* IMPORTANT: replace this with your real WhatsApp number.
    Country code + number only. Example: 919876543210 */
-const WHATSAPP_NUMBER = "919952281261";
+const WHATSAPP_NUMBER = "919962281251";
 
 function waUrl(message = "Hi Pretty Picks, I need help with my order.") {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
