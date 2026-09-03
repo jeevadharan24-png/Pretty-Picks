@@ -22,32 +22,69 @@ type Product = {
   active: boolean;
 };
 
-type CartItem = {
-  product: Product;
-  quantity: number;
+type CartItem = { product: Product; quantity: number };
+
+type ProfileData = {
+  name: string;
+  phone: string;
+  email: string;
+};
+
+type Address = {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault?: boolean;
+};
+
+type SavedOrder = {
+  orderNumber: string;
+  createdAt: string;
+  total: number;
 };
 
 const money = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+const instagramUrl = "https://www.instagram.com/prettypicks05/";
+
+/* IMPORTANT: replace this with your real WhatsApp number.
+   Country code + number only. Example: 919876543210 */
+const WHATSAPP_NUMBER = "919952281261";
+
+function waUrl(message = "Hi Pretty Picks, I need help with my order.") {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function readStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStorage(key: string, value: unknown) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
 
 function useCart() {
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("Pretty Picks-cart") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState<CartItem[]>(() =>
+    readStorage<CartItem[]>("Pretty Picks-cart", [])
+  );
 
   useEffect(() => {
-    localStorage.setItem("Pretty Picks-cart", JSON.stringify(cart));
+    writeStorage("Pretty Picks-cart", cart);
   }, [cart]);
 
   const add = (product: Product) =>
-    setCart((c) => {
-      const existing = c.find((x) => x.product.id === product.id);
-
+    setCart((current) => {
+      const existing = current.find((x) => x.product.id === product.id);
       if (existing) {
-        return c.map((x) =>
+        return current.map((x) =>
           x.product.id === product.id
             ? {
                 ...x,
@@ -56,70 +93,116 @@ function useCart() {
             : x
         );
       }
-
-      return [...c, { product, quantity: 1 }];
+      return [...current, { product, quantity: 1 }];
     });
 
   const update = (id: number, quantity: number) =>
-    setCart((c) =>
-      c.map((x) =>
+    setCart((current) =>
+      current.map((x) =>
         x.product.id === id
           ? {
               ...x,
-              quantity: Math.max(
-                1,
-                Math.min(quantity, x.product.stock)
-              ),
+              quantity: Math.max(1, Math.min(quantity, x.product.stock)),
             }
           : x
       )
     );
 
   const remove = (id: number) =>
-    setCart((c) => c.filter((x) => x.product.id !== id));
+    setCart((current) => current.filter((x) => x.product.id !== id));
 
   const clear = () => setCart([]);
 
   return { cart, add, update, remove, clear };
 }
 
+function useWishlist() {
+  const [ids, setIds] = useState<number[]>(() =>
+    readStorage<number[]>("pp-wishlist", [])
+  );
+
+  useEffect(() => writeStorage("pp-wishlist", ids), [ids]);
+
+  const toggle = (id: number) =>
+    setIds((current) =>
+      current.includes(id)
+        ? current.filter((x) => x !== id)
+        : [...current, id]
+    );
+
+  return { ids, toggle };
+}
+
 function Layout({
   children,
   count,
+  wishlistCount,
 }: {
   children: ReactNode;
   count: number;
+  wishlistCount: number;
 }) {
   return (
     <>
+      <div className="announcement-bar">
+        ✦ Curated with love · Free shipping above ₹2,000 ✦
+      </div>
+
       <header>
         <Link className="logo" to="/">
-          Pretty Picks
+          <img src="/logo.jpeg" alt="Pretty Picks" />
+          <span>Pretty Picks</span>
         </Link>
 
         <nav>
           <Link to="/">Home</Link>
           <Link to="/shop">Shop</Link>
-          <Link to="/track">Track Order</Link>
-
-          <a
-            href="https://www.instagram.com/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Instagram
-          </a>
-
+          <Link to="/track">Track</Link>
+          <Link to="/wishlist">♡ Wishlist ({wishlistCount})</Link>
+          <Link to="/profile">👤 My Account</Link>
           <Link className="cart-link" to="/cart">
-            Cart ({count})
+            🛒 Cart ({count})
           </Link>
         </nav>
       </header>
 
       <main>{children}</main>
 
+      <a
+        className="whatsapp-float"
+        href={waUrl()}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="WhatsApp support"
+        title="WhatsApp Support"
+      >
+        💬
+      </a>
+
       <footer>
-        © {new Date().getFullYear()} Pretty Picks · Shop with confidence
+        <div className="footer-brand">
+          <img src="/logo.jpeg" alt="Pretty Picks" />
+          <h2>Pretty Picks</h2>
+          <p>Pick your pretty. ♡</p>
+        </div>
+
+        <div className="footer-links">
+          <Link to="/">Home</Link>
+          <Link to="/shop">Shop</Link>
+          <Link to="/profile">My Account</Link>
+          <Link to="/track">Track Order</Link>
+          <Link to="/wishlist">Wishlist</Link>
+          <a href={instagramUrl} target="_blank" rel="noreferrer">
+            Instagram
+          </a>
+          <a href={waUrl()} target="_blank" rel="noreferrer">
+            WhatsApp Support
+          </a>
+        </div>
+
+        <div className="footer-bottom">
+          © {new Date().getFullYear()} Pretty Picks · Made with love ♡
+        </div>
       </footer>
     </>
   );
@@ -128,34 +211,73 @@ function Layout({
 function ProductCard({
   p,
   add,
+  wished,
+  onWishlist,
 }: {
   p: Product;
   add: (p: Product) => void;
+  wished: boolean;
+  onWishlist: () => void;
 }) {
+  const discount =
+    p.originalPrice && p.originalPrice > p.price
+      ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+      : 0;
+
   return (
     <article className="card">
-      <Link to={`/product/${p.slug}`}>
-        <img src={p.image} alt={p.name} />
+      <div className="product-image-wrap">
+        {p.bestseller && <span className="product-badge">Bestseller</span>}
+        {discount > 0 && (
+          <span className="discount-badge">{discount}% OFF</span>
+        )}
+        <button
+          className={`wishlist-heart ${wished ? "active" : ""}`}
+          onClick={onWishlist}
+          aria-label="Toggle wishlist"
+        >
+          {wished ? "♥" : "♡"}
+        </button>
+        <Link to={`/product/${p.slug}`}>
+          <img src={p.image} alt={p.name} />
+        </Link>
+      </div>
 
-        <div className="card-body">
+      <div className="card-body">
+        <div className="product-category">
+          {p.bestseller ? "BESTSELLER" : "PRETTY PICKS"}
+        </div>
+        <Link to={`/product/${p.slug}`}>
           <h3>{p.name}</h3>
           <p>{p.description}</p>
-
           <div className="price">
-            {money(p.price)}{" "}
+            {money(p.price)}
             {p.originalPrice && <del>{money(p.originalPrice)}</del>}
           </div>
+        </Link>
+        <div className="stock-text">
+          {p.stock > 0
+            ? p.stock <= 5
+              ? `Only ${p.stock} left`
+              : "In stock"
+            : "Out of stock"}
         </div>
-      </Link>
+      </div>
 
       <button onClick={() => add(p)} disabled={!p.stock}>
-        {p.stock ? "Add to Cart" : "Out of Stock"}
+        {p.stock ? "♡ Add to Cart" : "Out of Stock"}
       </button>
     </article>
   );
 }
 
-function Home({ add }: { add: (p: Product) => void }) {
+function Home({
+  add,
+  wishlist,
+}: {
+  add: (p: Product) => void;
+  wishlist: ReturnType<typeof useWishlist>;
+}) {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -165,49 +287,146 @@ function Home({ add }: { add: (p: Product) => void }) {
       .catch(console.error);
   }, []);
 
+  const featured = products.filter((p) => p.featured);
+  const bestsellers = products.filter((p) => p.bestseller);
+
+  const card = (p: Product) => (
+    <ProductCard
+      key={p.id}
+      p={p}
+      add={add}
+      wished={wishlist.ids.includes(p.id)}
+      onWishlist={() => wishlist.toggle(p.id)}
+    />
+  );
+
   return (
     <>
       <section className="hero">
-        <div>
-          <span>NEW SEASON</span>
-
+        <div className="hero-content">
+          <span>WELCOME TO PRETTY PICKS</span>
           <h1>
-            Simple products.
+            Pick your
             <br />
-            Made to stand out.
+            <em>pretty.</em>
           </h1>
-
           <p>
-            Discover our latest collection and order directly online.
+            Discover beautiful little things curated with love, style and a
+            touch of elegance.
           </p>
-
-          <Link className="button" to="/shop">
-            Shop Now
-          </Link>
+          <div className="hero-actions">
+            <Link className="button" to="/shop">
+              Explore Collection →
+            </Link>
+            <a
+              className="hero-instagram"
+              href={instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Follow us on Instagram
+            </a>
+          </div>
+        </div>
+        <div className="hero-decoration">
+          <img src="/logo.jpeg" alt="Pretty Picks" />
         </div>
       </section>
 
-      <section className="section">
-        <div className="section-head">
-          <h2>Featured</h2>
-          <Link to="/shop">View all →</Link>
+      <section className="brand-intro">
+        <div>
+          <span className="eyebrow">A LITTLE SOMETHING SPECIAL</span>
+          <h2>
+            Pretty things,
+            <br />
+            picked for you.
+          </h2>
+          <p>
+            At Pretty Picks, we believe that the little things make life
+            prettier. Explore our handpicked collection made to add a little
+            joy to your day.
+          </p>
         </div>
+      </section>
 
-        <div className="grid">
-          {products
-            .filter((p) => p.featured)
-            .map((p) => (
-              <ProductCard key={p.id} p={p} add={add} />
-            ))}
+      {featured.length > 0 && (
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">OUR FAVOURITES</span>
+              <h2>Featured Picks</h2>
+              <p>A few pretty picks we think you'll love.</p>
+            </div>
+            <Link to="/shop">View all →</Link>
+          </div>
+          <div className="grid">{featured.map(card)}</div>
+        </section>
+      )}
+
+      {bestsellers.length > 0 && (
+        <section className="section soft-section">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">LOVED BY YOU</span>
+              <h2>Bestsellers</h2>
+              <p>Our most-loved Pretty Picks.</p>
+            </div>
+            <Link to="/shop">Shop everything →</Link>
+          </div>
+          <div className="grid">{bestsellers.slice(0, 3).map(card)}</div>
+        </section>
+      )}
+
+      <section className="why-section">
+        <div className="section-head centered">
+          <div>
+            <span className="eyebrow">WHY PRETTY PICKS</span>
+            <h2>Picked with love ♡</h2>
+          </div>
         </div>
+        <div className="why-grid">
+          <div className="why-card">
+            <div className="why-icon">♡</div>
+            <h3>Curated with Love</h3>
+            <p>Every product is selected with care and attention.</p>
+          </div>
+          <div className="why-card">
+            <div className="why-icon">✦</div>
+            <h3>Wishlist & Account</h3>
+            <p>Save favourites, addresses and order details in one place.</p>
+          </div>
+          <div className="why-card">
+            <div className="why-icon">✓</div>
+            <h3>Secure Checkout</h3>
+            <p>Easy ordering and Razorpay payment support.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="support-banner">
+        <div>
+          <span className="eyebrow">NEED HELP?</span>
+          <h2>We're just a WhatsApp away.</h2>
+          <p>Questions about products, orders or delivery? Message us.</p>
+        </div>
+        <a className="button" href={waUrl()} target="_blank" rel="noreferrer">
+          💬 Chat on WhatsApp
+        </a>
       </section>
     </>
   );
 }
 
-function Shop({ add }: { add: (p: Product) => void }) {
+function Shop({
+  add,
+  wishlist,
+}: {
+  add: (p: Product) => void;
+  wishlist: ReturnType<typeof useWishlist>;
+}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState("newest");
 
   useEffect(() => {
     fetch("/api/products")
@@ -216,83 +435,213 @@ function Shop({ add }: { add: (p: Product) => void }) {
       .catch(console.error);
   }, []);
 
-  const shown = useMemo(
-    () =>
-      products.filter((p) =>
-        p.name.toLowerCase().includes(q.toLowerCase())
-      ),
-    [products, q]
-  );
+  const shown = useMemo(() => {
+    const query = q.toLowerCase().trim();
+    const result = products.filter(
+      (p) =>
+        p.active &&
+        (p.name.toLowerCase().includes(query) ||
+          p.description.toLowerCase().includes(query))
+    );
+
+    return [...result].sort((a, b) => {
+      if (sort === "low") return a.price - b.price;
+      if (sort === "high") return b.price - a.price;
+      if (sort === "discount") {
+        const da =
+          a.originalPrice && a.originalPrice > a.price
+            ? (a.originalPrice - a.price) / a.originalPrice
+            : 0;
+        const db =
+          b.originalPrice && b.originalPrice > b.price
+            ? (b.originalPrice - b.price) / b.originalPrice
+            : 0;
+        return db - da;
+      }
+      return b.id - a.id;
+    });
+  }, [products, q, sort]);
 
   return (
     <section className="section">
-      <div className="section-head">
-        <div>
-          <h1>Shop</h1>
-          <p>Browse all available products.</p>
-        </div>
+      <div className="shop-hero">
+        <span className="eyebrow">PRETTY PICKS COLLECTION</span>
+        <h1>Shop Pretty</h1>
+        <p>Find something beautiful for yourself or someone special.</p>
+      </div>
 
+      <div className="shop-toolbar">
+        <strong>{shown.length} products</strong>
         <input
           className="search"
-          placeholder="Search products..."
+          placeholder="Search pretty things..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="newest">Newest</option>
+          <option value="low">Price: Low to High</option>
+          <option value="high">Price: High to Low</option>
+          <option value="discount">Best Discount</option>
+        </select>
       </div>
 
-      <div className="grid">
-        {shown.map((p) => (
-          <ProductCard key={p.id} p={p} add={add} />
-        ))}
+      {shown.length > 0 ? (
+        <div className="grid">
+          {shown.map((p) => (
+            <ProductCard
+              key={p.id}
+              p={p}
+              add={add}
+              wished={wishlist.ids.includes(p.id)}
+              onWishlist={() => wishlist.toggle(p.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="empty">
+          <div className="empty-icon">♡</div>
+          <h2>No pretty picks found</h2>
+          <p>Try searching for something else.</p>
+          <button className="button" onClick={() => setQ("")}>
+            View All Products
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ProductPage({
+  add,
+  wishlist,
+}: {
+  add: (p: Product) => void;
+  wishlist: ReturnType<typeof useWishlist>;
+}) {
+  const { slug } = useParams();
+  const [p, setP] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/products/${slug}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Product not found");
+        return r.json();
+      })
+      .then(setP)
+      .catch(() => setP(null))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) return <section className="section"><div className="empty">Finding your pretty pick...</div></section>;
+  if (!p) return <section className="section"><div className="empty"><h2>Product not found</h2><Link className="button" to="/shop">Back to Shop</Link></div></section>;
+
+  const discount =
+    p.originalPrice && p.originalPrice > p.price
+      ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+      : 0;
+
+  const wished = wishlist.ids.includes(p.id);
+
+  return (
+    <section className="product-page">
+      <div className="product-gallery">
+        <div className="product-main-image">
+          {discount > 0 && <span className="discount-badge">{discount}% OFF</span>}
+          <button className={`wishlist-heart product-wish ${wished ? "active" : ""}`} onClick={() => wishlist.toggle(p.id)}>
+            {wished ? "♥" : "♡"}
+          </button>
+          <img src={p.image} alt={p.name} />
+        </div>
+      </div>
+
+      <div className="product-details">
+        <span className="eyebrow">PRETTY PICKS · CURATED FOR YOU</span>
+        <h1>{p.name}</h1>
+
+        <div className="big-price">
+          {money(p.price)}
+          {p.originalPrice && <del>{money(p.originalPrice)}</del>}
+        </div>
+
+        {discount > 0 && (
+          <div className="save-text">
+            You save {money(p.originalPrice! - p.price)} ({discount}%)
+          </div>
+        )}
+
+        <div className="product-description"><p>{p.description}</p></div>
+
+        <div className={`availability ${p.stock <= 5 ? "low-stock" : ""}`}>
+          <span className="availability-dot" />
+          {p.stock > 0 ? `${p.stock} items available` : "Currently unavailable"}
+        </div>
+
+        <div className="product-actions">
+          <button className="button product-add-button" onClick={() => add(p)} disabled={!p.stock}>
+            {p.stock ? "♡ Add to Cart" : "Out of Stock"}
+          </button>
+          <button className="outline-button" onClick={() => wishlist.toggle(p.id)}>
+            {wished ? "♥ Saved" : "♡ Save to Wishlist"}
+          </button>
+        </div>
+
+        <div className="product-info-box">
+          <div><strong>♡ Carefully Selected</strong><span>Picked with love by Pretty Picks</span></div>
+          <div><strong>✦ Secure Checkout</strong><span>Safe & secure online payment</span></div>
+          <div><strong>↺ Need Help?</strong><a href={waUrl(`Hi Pretty Picks, I have a question about ${p.name}.`)} target="_blank" rel="noreferrer">Chat on WhatsApp</a></div>
+        </div>
       </div>
     </section>
   );
 }
 
-function ProductPage({ add }: { add: (p: Product) => void }) {
-  const { slug } = useParams();
-  const [p, setP] = useState<Product | null>(null);
+function Wishlist({
+  add,
+  wishlist,
+}: {
+  add: (p: Product) => void;
+  wishlist: ReturnType<typeof useWishlist>;
+}) {
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    fetch(`/api/products/${slug}`)
-      .then((r) => r.json())
-      .then(setP)
-      .catch(console.error);
-  }, [slug]);
+    fetch("/api/products").then((r) => r.json()).then(setProducts).catch(console.error);
+  }, []);
 
-  if (!p) {
-    return (
-      <section className="section">
-        <p>Loading...</p>
-      </section>
-    );
-  }
+  const saved = products.filter((p) => wishlist.ids.includes(p.id));
 
   return (
-    <section className="product-page">
-      <img src={p.image} alt={p.name} />
-
-      <div>
-        <span className="muted">PRETTY PICKS</span>
-
-        <h1>{p.name}</h1>
-
-        <div className="big-price">
-          {money(p.price)}{" "}
-          {p.originalPrice && <del>{money(p.originalPrice)}</del>}
+    <section className="section">
+      <div className="section-head">
+        <div>
+          <span className="eyebrow">SAVED FOR LATER</span>
+          <h1>My Wishlist</h1>
+          <p>Your favourite Pretty Picks, all in one place.</p>
         </div>
-
-        <p>{p.description}</p>
-        <p>{p.stock} items available</p>
-
-        <button
-          className="button"
-          onClick={() => add(p)}
-          disabled={!p.stock}
-        >
-          {p.stock ? "Add to Cart" : "Out of Stock"}
-        </button>
       </div>
+      {!saved.length ? (
+        <div className="empty">
+          <div className="empty-icon">♡</div>
+          <h2>Your wishlist is empty</h2>
+          <p>Tap the heart on any product to save it.</p>
+          <Link className="button" to="/shop">Explore Products →</Link>
+        </div>
+      ) : (
+        <div className="grid">
+          {saved.map((p) => (
+            <ProductCard
+              key={p.id}
+              p={p}
+              add={add}
+              wished
+              onWishlist={() => wishlist.toggle(p.id)}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -306,194 +655,177 @@ function Cart({
   update: (id: number, q: number) => void;
   remove: (id: number) => void;
 }) {
-  const subtotal = cart.reduce(
-    (s, x) => s + x.product.price * x.quantity,
-    0
-  );
-
-  const shipping =
-    subtotal >= 2000 || subtotal === 0 ? 0 : 99;
+  const subtotal = cart.reduce((sum, x) => sum + x.product.price * x.quantity, 0);
+  const shipping = subtotal >= 2000 || subtotal === 0 ? 0 : 99;
+  const total = subtotal + shipping;
 
   return (
-    <section className="section narrow">
-      <h1>Your Cart</h1>
+    <section className="section cart-section">
+      <div className="section-head">
+        <div><span className="eyebrow">YOUR PRETTY PICKS</span><h1>Your Cart</h1><p>Review your items before checkout.</p></div>
+      </div>
 
       {!cart.length ? (
         <div className="empty">
-          <p>Your cart is empty.</p>
-
-          <Link className="button" to="/shop">
-            Continue Shopping
-          </Link>
+          <div className="empty-icon">♡</div>
+          <h2>Your cart is waiting</h2>
+          <p>Looks like you haven't picked anything yet.</p>
+          <Link className="button" to="/shop">Start Shopping →</Link>
         </div>
       ) : (
-        <>
+        <div className="cart-layout">
           <div className="cart-list">
             {cart.map((x) => (
               <div className="cart-row" key={x.product.id}>
                 <img src={x.product.image} alt={x.product.name} />
-
-                <div>
+                <div className="cart-product-info">
+                  <span className="eyebrow">PRETTY PICK</span>
                   <h3>{x.product.name}</h3>
-
                   <p>{money(x.product.price)}</p>
-
-                  <div>
-                    <button
-                      onClick={() =>
-                        update(x.product.id, x.quantity - 1)
-                      }
-                    >
-                      -
-                    </button>
-
+                  <div className="quantity-control">
+                    <button onClick={() => update(x.product.id, x.quantity - 1)} disabled={x.quantity <= 1}>−</button>
                     <b>{x.quantity}</b>
-
-                    <button
-                      onClick={() =>
-                        update(x.product.id, x.quantity + 1)
-                      }
-                    >
-                      +
-                    </button>
-
-                    <button
-                      className="link-btn"
-                      onClick={() => remove(x.product.id)}
-                    >
-                      Remove
-                    </button>
+                    <button onClick={() => update(x.product.id, x.quantity + 1)} disabled={x.quantity >= x.product.stock}>+</button>
+                    <button className="link-btn" onClick={() => remove(x.product.id)}>Remove</button>
                   </div>
                 </div>
-
-                <strong>
-                  {money(x.product.price * x.quantity)}
-                </strong>
+                <strong className="cart-item-total">{money(x.product.price * x.quantity)}</strong>
               </div>
             ))}
           </div>
 
           <div className="summary">
-            <p>
-              Subtotal <b>{money(subtotal)}</b>
-            </p>
-
-            <p>
-              Shipping <b>{shipping ? money(shipping) : "Free"}</b>
-            </p>
-
+            <h2>Order Summary</h2>
+            <p><span>Subtotal</span><b>{money(subtotal)}</b></p>
+            <p><span>Shipping</span><b>{shipping ? money(shipping) : "Free"}</b></p>
+            {subtotal > 0 && subtotal < 2000 && (
+              <div className="shipping-note">Add {money(2000 - subtotal)} more for free shipping ♡</div>
+            )}
             <hr />
-
-            <p className="total">
-              Total <b>{money(subtotal + shipping)}</b>
-            </p>
-
-            <Link className="button full" to="/checkout">
-              Checkout
-            </Link>
+            <p className="total"><span>Total</span><b>{money(total)}</b></p>
+            <Link className="button full" to="/checkout">Proceed to Checkout →</Link>
+            <Link className="continue-shopping" to="/shop">← Continue Shopping</Link>
           </div>
-        </>
+        </div>
       )}
     </section>
   );
 }
 
-function Checkout({
-  cart,
-  clear,
-}: {
-  cart: CartItem[];
-  clear: () => void;
-}) {
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
+function Checkout({ cart, clear }: { cart: CartItem[]; clear: () => void }) {
+  const savedProfile = readStorage<ProfileData>("pp-profile", { name: "", phone: "", email: "" });
+  const addresses = readStorage<Address[]>("pp-addresses", []);
+  const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
 
+  const [form, setForm] = useState({
+    name: savedProfile.name,
+    phone: savedProfile.phone,
+    email: savedProfile.email,
+    address: defaultAddress?.address || "",
+    city: defaultAddress?.city || "",
+    state: defaultAddress?.state || "",
+    pincode: defaultAddress?.pincode || "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const nav = useNavigate();
+
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const shipping = subtotal >= 2000 ? 0 : 99;
+  const total = subtotal + shipping;
+
+  const updateField = (key: string, value: string) => setForm((c) => ({ ...c, [key]: value }));
+
+  const saveProfile = () => {
+    writeStorage("pp-profile", { name: form.name, phone: form.phone, email: form.email });
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-
     setLoading(true);
     setError("");
+    saveProfile();
+
+    const nextAddresses = readStorage<Address[]>("pp-addresses", []);
+    if (form.address && form.city && form.state && form.pincode) {
+      const exists = nextAddresses.some(
+        (a) => a.address === form.address && a.pincode === form.pincode
+      );
+      if (!exists) {
+        writeStorage("pp-addresses", [
+          ...nextAddresses,
+          {
+            id: crypto.randomUUID(),
+            name: form.name,
+            phone: form.phone,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            pincode: form.pincode,
+            isDefault: nextAddresses.length === 0,
+          },
+        ]);
+      }
+    }
 
     try {
       const r = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: form,
-          items: cart.map((x) => ({
-            productId: x.product.id,
-            quantity: x.quantity,
-          })),
+          items: cart.map((x) => ({ productId: x.product.id, quantity: x.quantity })),
         }),
       });
-
       const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Order failed");
 
-      if (!r.ok) {
-        throw new Error(data.error || "Order failed");
-      }
+      const saveOrder = (number: string, orderTotal: number) => {
+        const current = readStorage<SavedOrder[]>("pp-orders", []);
+        writeStorage("pp-orders", [
+          { orderNumber: number, createdAt: new Date().toISOString(), total: orderTotal },
+          ...current.filter((x) => x.orderNumber !== number),
+        ]);
+      };
 
       if (data.razorpay) {
         const script = document.createElement("script");
-
-        script.src =
-          "https://checkout.razorpay.com/v1/checkout.js";
-
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
         script.onload = () => {
           const rz = new (window as any).Razorpay({
             key: data.razorpay.key,
             amount: data.razorpay.amount,
             currency: data.razorpay.currency,
             name: "Pretty Picks",
-            description: "Order payment",
+            description: "Pretty Picks Order",
             order_id: data.razorpay.id,
-
-            prefill: {
-              name: form.name,
-              email: form.email,
-              contact: form.phone,
-            },
-
+            prefill: { name: form.name, email: form.email, contact: form.phone },
+            theme: { color: "#c9828e" },
             handler: async (resp: any) => {
               const vr = await fetch("/api/payments/verify", {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  orderId: data.order.id,
-                  ...resp,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: data.order.id, ...resp }),
               });
-
-              if (vr.ok) {
-                clear();
-                nav(`/success/${data.order.orderNumber}`);
-              } else {
+              if (!vr.ok) {
                 setError("Payment verification failed.");
+                setLoading(false);
+                return;
               }
+              saveOrder(data.order.orderNumber, data.order.total);
+              clear();
+              nav(`/success/${data.order.orderNumber}`);
             },
           });
-
           rz.open();
         };
-
+        script.onerror = () => {
+          setError("Unable to load payment gateway.");
+          setLoading(false);
+        };
         document.body.appendChild(script);
       } else {
+        saveOrder(data.order.orderNumber, data.order.total);
         clear();
         nav(`/success/${data.order.orderNumber}`);
       }
@@ -505,287 +837,373 @@ function Checkout({
   };
 
   if (!cart.length) {
-    return (
-      <section className="section narrow">
-        <h1>Checkout</h1>
-        <p>Your cart is empty.</p>
-      </section>
-    );
+    return <section className="section narrow"><div className="empty"><h1>Checkout</h1><p>Your cart is empty.</p><Link className="button" to="/shop">Go Shopping →</Link></div></section>;
   }
 
+  const fields = [
+    ["name", "Full Name", "text"],
+    ["phone", "Mobile Number", "tel"],
+    ["email", "Email Address", "email"],
+    ["address", "Delivery Address", "text"],
+    ["city", "City", "text"],
+    ["state", "State", "text"],
+    ["pincode", "Pincode", "text"],
+  ];
+
   return (
-    <section className="section narrow">
-      <h1>Checkout</h1>
+    <section className="section checkout-section">
+      <div className="checkout-heading">
+        <span className="eyebrow">ALMOST THERE ♡</span>
+        <h1>Checkout</h1>
+        <p>Your saved profile and default address are automatically loaded.</p>
+      </div>
 
-      <form onSubmit={submit} className="form">
-        {[
-          "name",
-          "phone",
-          "email",
-          "address",
-          "city",
-          "state",
-          "pincode",
-        ].map((key) => (
-          <label key={key}>
-            {key === "name"
-              ? "Full Name"
-              : key === "phone"
-              ? "Mobile Number"
-              : key === "email"
-              ? "Email"
-              : key === "address"
-              ? "Address"
-              : key === "pincode"
-              ? "Pincode"
-              : key[0].toUpperCase() + key.slice(1)}
+      <div className="checkout-layout">
+        <form onSubmit={submit} className="form checkout-form">
+          <div className="form-card">
+            <h2>Delivery Details</h2>
+            {fields.map(([key, label, type]) => (
+              <label key={key}>
+                {label}
+                <input
+                  required={key !== "email"}
+                  type={type}
+                  value={(form as any)[key]}
+                  onChange={(e) => updateField(key, e.target.value)}
+                />
+              </label>
+            ))}
+            {error && <div className="error">{error}</div>}
+          </div>
+          <button className="button full" disabled={loading}>
+            {loading ? "Processing..." : "Place Order & Pay →"}
+          </button>
+          <small className="secure-payment">♡ Secure payment through Razorpay when configured.</small>
+        </form>
 
-            <input
-              required={key !== "email"}
-              type={key === "email" ? "email" : "text"}
-              value={(form as any)[key]}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  [key]: e.target.value,
-                })
-              }
-            />
-          </label>
-        ))}
-
-        {error && <div className="error">{error}</div>}
-
-        <button className="button full" disabled={loading}>
-          {loading ? "Processing..." : "Place Order & Pay"}
-        </button>
-
-        <small>
-          Payments are securely processed by Razorpay when payment
-          keys are configured.
-        </small>
-      </form>
+        <div className="checkout-summary">
+          <h2>Your Order</h2>
+          {cart.map((item) => (
+            <div className="checkout-item" key={item.product.id}>
+              <img src={item.product.image} alt={item.product.name} />
+              <div><strong>{item.product.name}</strong><small>Qty: {item.quantity}</small></div>
+              <b>{money(item.product.price * item.quantity)}</b>
+            </div>
+          ))}
+          <hr />
+          <p><span>Subtotal</span><b>{money(subtotal)}</b></p>
+          <p><span>Shipping</span><b>{shipping ? money(shipping) : "Free"}</b></p>
+          <p className="checkout-total"><span>Total</span><b>{money(total)}</b></p>
+        </div>
+      </div>
     </section>
   );
 }
 
 function Success() {
   const { number } = useParams();
-
   return (
-    <section className="section narrow center">
-      <div className="success">✓</div>
-
-      <h1>Order Placed!</h1>
-
-      <p>
-        Your order <b>{number}</b> has been received.
-      </p>
-
-      <Link className="button" to="/shop">
-        Continue Shopping
-      </Link>
+    <section className="section narrow success-section">
+      <div className="success-card">
+        <div className="success-icon">✓</div>
+        <span className="eyebrow">THANK YOU ♡</span>
+        <h1>Order Placed!</h1>
+        <p>Your Pretty Picks order has been received successfully.</p>
+        <div className="order-number"><small>ORDER NUMBER</small><strong>{number}</strong></div>
+        <div className="success-actions">
+          <Link className="button" to="/profile">My Orders</Link>
+          <Link className="continue-shopping" to="/track">Track Order</Link>
+          <Link className="continue-shopping" to="/shop">Continue Shopping →</Link>
+        </div>
+      </div>
     </section>
   );
 }
 
 function Track() {
   const [number, setNumber] = useState("");
-  const [order, setOrder] = useState<any>();
+  const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState("");
 
   const search = async () => {
+    if (!number.trim()) return setError("Please enter your order number.");
     setError("");
-
-    const r = await fetch(`/api/orders/${number}`);
-
-    if (!r.ok) {
-      setError("Order not found.");
+    try {
+      const r = await fetch(`/api/orders/${number.trim()}`);
+      if (!r.ok) {
+        setOrder(null);
+        return setError("Order not found. Please check your order number.");
+      }
+      setOrder(await r.json());
+    } catch {
       setOrder(null);
-      return;
+      setError("Unable to connect to the server.");
     }
-
-    setOrder(await r.json());
   };
 
+  const steps = ["PENDING", "CONFIRMED", "PROCESSING", "PACKED", "SHIPPED", "DELIVERED"];
+  const current = order ? steps.indexOf(order.orderStatus) : -1;
+
   return (
-    <section className="section narrow">
-      <h1>Track Order</h1>
-
-      <div className="track">
-        <input
-          placeholder="Pretty Picks-6369090002"
-          value={number}
-          onChange={(e) => setNumber(e.target.value)}
-        />
-
-        <button className="button" onClick={search}>
-          Track
-        </button>
+    <section className="section narrow track-section">
+      <div className="track-heading">
+        <span className="eyebrow">ORDER STATUS</span>
+        <h1>Track Your Order</h1>
+        <p>Enter your Pretty Picks order number to see the latest status.</p>
       </div>
-
-      {error && <p className="error">{error}</p>}
-
-      {order && (
-        <div className="order-box">
-          <h2>{order.orderNumber}</h2>
-
-          <p>
-            Status: <b>{order.orderStatus}</b>
-          </p>
-
-          <p>
-            Payment: <b>{order.paymentStatus}</b>
-          </p>
-
-          <p>
-            Total: <b>{money(order.total)}</b>
-          </p>
+      <div className="track-card">
+        <div className="track">
+          <input placeholder="VELA-12345678" value={number} onChange={(e) => setNumber(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} />
+          <button className="button" onClick={search}>Track →</button>
         </div>
-      )}
+        {error && <p className="error">{error}</p>}
+        {order && (
+          <div className="order-box">
+            <div className="order-status-icon">♡</div>
+            <h2>{order.orderNumber}</h2>
+            <div className="status-timeline">
+              {steps.map((step, i) => (
+                <div className={`status-step ${i <= current ? "done" : ""}`} key={step}>
+                  <span>{i <= current ? "✓" : i + 1}</span>
+                  <small>{step}</small>
+                </div>
+              ))}
+            </div>
+            <div className="order-detail"><span>Order Status</span><b>{order.orderStatus}</b></div>
+            <div className="order-detail"><span>Payment</span><b>{order.paymentStatus}</b></div>
+            <div className="order-detail"><span>Total</span><b>{money(order.total)}</b></div>
+            <a className="whatsapp-button" href={waUrl(`Hi Pretty Picks, I need help with order ${order.orderNumber}.`)} target="_blank" rel="noreferrer">💬 Ask about this order</a>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
 
-
-/* =========================
-   ADMIN DASHBOARD
-========================= */
-
-function Admin() {
-  const [token, setToken] = useState(
-    localStorage.getItem("admin-token") || ""
+function Profile() {
+  const [active, setActive] = useState("profile");
+  const [profile, setProfile] = useState<ProfileData>(() =>
+    readStorage<ProfileData>("pp-profile", { name: "", phone: "", email: "" })
   );
+  const [orders, setOrders] = useState<SavedOrder[]>(() =>
+    readStorage<SavedOrder[]>("pp-orders", [])
+  );
+  const [addresses, setAddresses] = useState<Address[]>(() =>
+    readStorage<Address[]>("pp-addresses", [])
+  );
+  const [message, setMessage] = useState("");
 
-  const [email, setEmail] = useState("prettypicks@gmail.com");
-  const [password, setPassword] = useState("");
+  const saveProfile = () => {
+    writeStorage("pp-profile", profile);
+    setMessage("Profile saved successfully ♡");
+    setTimeout(() => setMessage(""), 2500);
+  };
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const removeAddress = (id: string) => {
+    const next = addresses.filter((a) => a.id !== id);
+    setAddresses(next);
+    writeStorage("pp-addresses", next);
+  };
 
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    price: "",
-    originalPrice: "",
-    stock: "",
-    image: "",
-  });
+  const makeDefault = (id: string) => {
+    const next = addresses.map((a) => ({ ...a, isDefault: a.id === id }));
+    setAddresses(next);
+    writeStorage("pp-addresses", next);
+  };
 
-  const load = async (t = token) => {
-    if (!t) return;
-
-    const headers = {
-      Authorization: `Bearer ${t}`,
-    };
-
-    try {
-      const [p, o] = await Promise.all([
-        fetch("/api/admin/products", {
-          headers,
-        }),
-        fetch("/api/admin/orders", {
-          headers,
-        }),
-      ]);
-
-      if (p.ok) {
-        setProducts(await p.json());
-      }
-
-      if (o.ok) {
-        setOrders(await o.json());
-      }
-
-      if (p.status === 401 || o.status === 401) {
-        localStorage.removeItem("admin-token");
-        setToken("");
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const loadOrders = async () => {
+    const stored = readStorage<SavedOrder[]>("pp-orders", []);
+    const refreshed = await Promise.all(
+      stored.map(async (saved) => {
+        try {
+          const r = await fetch(`/api/orders/${saved.orderNumber}`);
+          if (!r.ok) return saved;
+          const o = await r.json();
+          return { ...saved, total: o.total };
+        } catch {
+          return saved;
+        }
+      })
+    );
+    setOrders(refreshed);
+    writeStorage("pp-orders", refreshed);
   };
 
   useEffect(() => {
-    if (token) {
-      load(token);
+    if (active === "orders") loadOrders();
+  }, [active]);
+
+  return (
+    <section className="section profile-page">
+      <div className="profile-header">
+        <div className="profile-avatar">{profile.name ? profile.name[0].toUpperCase() : "P"}</div>
+        <div>
+          <span className="eyebrow">MY ACCOUNT</span>
+          <h1>{profile.name ? `Hello, ${profile.name}` : "Welcome to Pretty Picks"}</h1>
+          <p>Manage your profile, orders, wishlist and saved addresses.</p>
+        </div>
+      </div>
+
+      <div className="profile-layout">
+        <aside className="profile-sidebar">
+          {[
+            ["profile", "👤 Personal Information"],
+            ["orders", "📦 My Orders"],
+            ["wishlist", "♡ My Wishlist"],
+            ["addresses", "📍 Saved Addresses"],
+            ["payments", "💳 Payments"],
+            ["coupons", "🎟 My Coupons"],
+            ["support", "💬 Help & Support"],
+          ].map(([id, label]) => (
+            <button className={active === id ? "profile-menu active" : "profile-menu"} key={id} onClick={() => setActive(id)}>
+              {label}
+            </button>
+          ))}
+        </aside>
+
+        <div className="profile-content">
+          {active === "profile" && (
+            <div className="profile-card">
+              <div className="profile-card-head"><div><span className="eyebrow">ACCOUNT</span><h2>Personal Information</h2></div><span>🔒</span></div>
+              <div className="profile-form">
+                <label>Full Name<input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></label>
+                <label>Mobile Number<input type="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></label>
+                <label>Email Address<input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></label>
+                <button className="button" onClick={saveProfile}>Save Changes</button>
+                {message && <div className="success-message">{message}</div>}
+              </div>
+            </div>
+          )}
+
+          {active === "orders" && (
+            <div className="profile-card">
+              <div className="profile-card-head"><div><span className="eyebrow">PURCHASE HISTORY</span><h2>My Orders</h2></div></div>
+              {!orders.length ? (
+                <div className="address-empty"><div>📦</div><h3>No orders yet</h3><p>Your completed orders will appear here.</p><Link className="button" to="/shop">Start Shopping</Link></div>
+              ) : (
+                <div className="account-order-list">
+                  {orders.map((o) => (
+                    <div className="account-order" key={o.orderNumber}>
+                      <div><span className="order-label">ORDER</span><strong>{o.orderNumber}</strong><small>{new Date(o.createdAt).toLocaleDateString("en-IN")}</small></div>
+                      <b>{money(o.total)}</b>
+                      <Link className="small-button" to={`/track?order=${o.orderNumber}`}>Track</Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {active === "wishlist" && <Wishlist add={() => {}} wishlist={useWishlist()} />}
+
+          {active === "addresses" && (
+            <div className="profile-card">
+              <div className="profile-card-head"><div><span className="eyebrow">DELIVERY</span><h2>Saved Addresses</h2></div><Link className="small-button" to="/checkout">Add at Checkout</Link></div>
+              {!addresses.length ? (
+                <div className="address-empty"><div>📍</div><h3>No saved addresses</h3><p>Complete checkout once and your address will be saved here.</p></div>
+              ) : addresses.map((a) => (
+                <div className="address-card" key={a.id}>
+                  {a.isDefault && <span className="default-badge">DEFAULT</span>}
+                  <strong>{a.name}</strong><span>{a.phone}</span>
+                  <p>{a.address}, {a.city}, {a.state} - {a.pincode}</p>
+                  <div><button className="link-btn" onClick={() => makeDefault(a.id)}>Make Default</button><button className="link-btn danger-link" onClick={() => removeAddress(a.id)}>Delete</button></div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {active === "payments" && (
+            <div className="profile-card">
+              <span className="eyebrow">PAYMENTS</span><h2>Payment Methods</h2>
+              <div className="payment-info"><div className="payment-icon">₹</div><div><strong>Razorpay</strong><p>Secure online payments are handled by Razorpay during checkout.</p></div><span>✓</span></div>
+              <p className="muted">Card, UPI and other methods depend on your Razorpay checkout configuration.</p>
+            </div>
+          )}
+
+          {active === "coupons" && (
+            <div className="profile-card">
+              <span className="eyebrow">OFFERS</span><h2>My Coupons</h2>
+              <div className="coupon-box"><span>✦</span><div><strong>PRETTY PICKS OFFERS</strong><p>Coupon support can be enabled from the store backend later.</p></div></div>
+              <p className="muted">We have not added a fake discount here because your current order API calculates the final total on the server.</p>
+            </div>
+          )}
+
+          {active === "support" && (
+            <div className="profile-card">
+              <span className="eyebrow">CUSTOMER CARE</span><h2>Help & Support</h2>
+              <p>Need help with an order, product, delivery or payment?</p>
+              <a className="whatsapp-button" href={waUrl()} target="_blank" rel="noreferrer">💬 Chat with Pretty Picks on WhatsApp</a>
+              <div className="support-options">
+                <Link to="/track">📦 Track an Order</Link>
+                <Link to="/shop">🛍 Browse Products</Link>
+                <a href={instagramUrl} target="_blank" rel="noreferrer">📸 Instagram Support</a>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Admin() {
+  const [token, setToken] = useState(localStorage.getItem("admin-token") || "");
+  const [email, setEmail] = useState("prettypicks@gmail.com");
+  const [password, setPassword] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [form, setForm] = useState({ name: "", description: "", price: "", originalPrice: "", stock: "", image: "" });
+
+  const load = async (t = token) => {
+    if (!t) return;
+    const headers = { Authorization: `Bearer ${t}` };
+    const [p, o] = await Promise.all([
+      fetch("/api/admin/products", { headers }),
+      fetch("/api/admin/orders", { headers }),
+    ]);
+    if (p.ok) setProducts(await p.json());
+    if (o.ok) setOrders(await o.json());
+    if (p.status === 401 || o.status === 401) {
+      localStorage.removeItem("admin-token");
+      setToken("");
     }
-  }, [token]);
+  };
+
+  useEffect(() => { if (token) load(token); }, [token]);
 
   const login = async () => {
     try {
       const r = await fetch("/api/admin/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-
       const d = await r.json();
-
-      if (r.ok && d.token) {
-        localStorage.setItem("admin-token", d.token);
-        setToken(d.token);
-        setPassword("");
-        await load(d.token);
-      } else {
-        alert(d.error || "Login failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Server connection failed");
-    }
+      if (!r.ok) return alert(d.error || "Login failed");
+      localStorage.setItem("admin-token", d.token);
+      setToken(d.token);
+      setPassword("");
+    } catch { alert("Server connection failed"); }
   };
 
-  const add = async () => {
-    if (!form.name || !form.price || !form.stock) {
-      alert("Name, price and stock are required.");
-      return;
-    }
-
-    try {
-      const r = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: form.name,
-          description: form.description,
-          price: Number(form.price),
-          originalPrice: form.originalPrice
-            ? Number(form.originalPrice)
-            : null,
-          stock: Number(form.stock),
-          image: form.image,
-        }),
-      });
-
-      const data = await r.json();
-
-      if (r.ok) {
-        setForm({
-          name: "",
-          description: "",
-          price: "",
-          originalPrice: "",
-          stock: "",
-          image: "",
-        });
-
-        await load();
-      } else {
-        alert(data.error || "Failed to add product");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Server connection failed");
-    }
+  const addProduct = async () => {
+    if (!form.name || !form.price || !form.stock || !form.image) return alert("Name, price, stock and image are required.");
+    const r = await fetch("/api/admin/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+        stock: Number(form.stock),
+        image: form.image,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) return alert(d.error || "Failed to add product");
+    setForm({ name: "", description: "", price: "", originalPrice: "", stock: "", image: "" });
+    load();
   };
 
   const logout = () => {
@@ -795,280 +1213,88 @@ function Admin() {
     setOrders([]);
   };
 
-  if (!token) {
-    return (
-      <section className="section narrow">
-        <h1>Admin Login</h1>
-
+  if (!token) return (
+    <section className="section narrow admin-login">
+      <div className="admin-login-card">
+        <img src="/logo.jpeg" alt="Pretty Picks" />
+        <span className="eyebrow">PRETTY PICKS</span><h1>Admin Login</h1><p>Manage your Pretty Picks store.</p>
         <div className="form">
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-          />
-
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-          />
-
-          <button className="button" onClick={login}>
-            Login
-          </button>
+          <label>Email<input value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && login()} /></label>
+          <button className="button full" onClick={login}>Login →</button>
         </div>
-      </section>
-    );
-  }
+      </div>
+    </section>
+  );
 
   return (
-    <section className="section">
-      <div className="admin-head">
-        <div>
-          <h1>Admin Dashboard</h1>
-          <p>Manage your store products and orders.</p>
-        </div>
-
-        <button onClick={logout}>Logout</button>
+    <section className="section admin-section">
+      <div className="admin-head"><div><span className="eyebrow">PRETTY PICKS</span><h1>Admin Dashboard</h1><p>Manage products and orders.</p></div><button className="admin-logout" onClick={logout}>Logout</button></div>
+      <div className="admin-stats">
+        <div><span>Products</span><b>{products.length}</b></div>
+        <div><span>Orders</span><b>{orders.length}</b></div>
+        <div><span>WhatsApp</span><b>Support</b></div>
       </div>
-
       <div className="admin-grid">
-
-        {/* ADD PRODUCT */}
-
         <div className="admin-panel">
           <h2>Add Product</h2>
-
+          <p className="muted">Add a new Pretty Pick to your store.</p>
           <div className="form">
-            <input
-              placeholder="Product Name"
-              value={form.name}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  name: e.target.value,
-                })
-              }
-            />
-
-            <input
-              placeholder="Description"
-              value={form.description}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  description: e.target.value,
-                })
-              }
-            />
-
-            <input
-              type="number"
-              placeholder="Price"
-              value={form.price}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  price: e.target.value,
-                })
-              }
-            />
-
-            <input
-              type="number"
-              placeholder="Original Price"
-              value={form.originalPrice}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  originalPrice: e.target.value,
-                })
-              }
-            />
-
-            <input
-              type="number"
-              placeholder="Stock"
-              value={form.stock}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  stock: e.target.value,
-                })
-              }
-            />
-
-            <input
-              placeholder="Image URL"
-              value={form.image}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  image: e.target.value,
-                })
-              }
-            />
-
-            <button className="button" onClick={add}>
-              Add Product
-            </button>
+            <label>Product Name<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+            <label>Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+            <label>Price<input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></label>
+            <label>Original Price<input type="number" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })} /></label>
+            <label>Stock<input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} /></label>
+            <label>Image URL<input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></label>
+            <button className="button" onClick={addProduct}>+ Add Product</button>
           </div>
         </div>
 
-
-        {/* PRODUCTS */}
-
         <div className="admin-panel">
           <h2>Products ({products.length})</h2>
-
           {products.map((p) => (
             <div className="admin-item" key={p.id}>
-              <img src={p.image} alt={p.name} />
-
-              <div>
-                <b>{p.name}</b>
-                <small>
-                  {money(p.price)} · Stock {p.stock}
-                </small>
-              </div>
-
-              <button
-                onClick={async () => {
-                  if (!confirm("Delete product?")) return;
-
-                  await fetch(
-                    `/api/admin/products/${p.id}`,
-                    {
-                      method: "DELETE",
-                      headers: {
-                        Authorization: `Bearer ${token}`,
-                      },
-                    }
-                  );
-
-                  await load();
-                }}
-              >
-                Delete
-              </button>
+              <img src={p.image} alt={p.name} /><div><b>{p.name}</b><small>{money(p.price)} · Stock {p.stock}</small></div>
+              <button onClick={async () => { if (!confirm("Delete product?")) return; await fetch(`/api/admin/products/${p.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); load(); }}>Delete</button>
             </div>
           ))}
         </div>
 
-
-        {/* ORDERS */}
-
         <div className="admin-panel">
           <h2>Orders ({orders.length})</h2>
-
           {orders.map((o) => (
             <div className="admin-item" key={o.id}>
-              <div>
-                <b>{o.orderNumber}</b>
-
-                <small>
-                  {o.customerName} · {money(o.total)}
-                </small>
-              </div>
-
-              <select
-                value={o.orderStatus}
-                onChange={async (e) => {
-                  await fetch(
-                    `/api/admin/orders/${o.id}/status`,
-                    {
-                      method: "PUT",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        status: e.target.value,
-                      }),
-                    }
-                  );
-
-                  await load();
-                }}
-              >
-                <option value="PENDING">PENDING</option>
-                <option value="CONFIRMED">CONFIRMED</option>
-                <option value="PROCESSING">PROCESSING</option>
-                <option value="PACKED">PACKED</option>
-                <option value="SHIPPED">SHIPPED</option>
-                <option value="DELIVERED">DELIVERED</option>
-                <option value="CANCELLED">CANCELLED</option>
+              <div><b>{o.orderNumber}</b><small>{o.customerName} · {money(o.total)}</small></div>
+              <select value={o.orderStatus} onChange={async (e) => { await fetch(`/api/admin/orders/${o.id}/status`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status: e.target.value }) }); load(); }}>
+                {["PENDING","CONFIRMED","PROCESSING","PACKED","SHIPPED","DELIVERED","CANCELLED"].map((s) => <option key={s}>{s}</option>)}
               </select>
             </div>
           ))}
         </div>
-
       </div>
     </section>
   );
 }
 
-
-/* =========================
-   APP
-========================= */
-
 export default function App() {
   const cartHook = useCart();
+  const wishlist = useWishlist();
 
-  const cartCount = cartHook.cart.reduce(
-    (s, x) => s + x.quantity,
-    0
-  );
+  const cartCount = cartHook.cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <Layout count={cartCount}>
+    <Layout count={cartCount} wishlistCount={wishlist.ids.length}>
       <Routes>
-        <Route
-          path="/"
-          element={<Home add={cartHook.add} />}
-        />
-
-        <Route
-          path="/shop"
-          element={<Shop add={cartHook.add} />}
-        />
-
-        <Route
-          path="/product/:slug"
-          element={<ProductPage add={cartHook.add} />}
-        />
-
-        <Route
-          path="/cart"
-          element={<Cart {...cartHook} />}
-        />
-
-        <Route
-          path="/checkout"
-          element={
-            <Checkout
-              cart={cartHook.cart}
-              clear={cartHook.clear}
-            />
-          }
-        />
-
-        <Route
-          path="/success/:number"
-          element={<Success />}
-        />
-
-        <Route
-          path="/track"
-          element={<Track />}
-        />
-
-        <Route
-          path="/admin"
-          element={<Admin />}
-        />
+        <Route path="/" element={<Home add={cartHook.add} wishlist={wishlist} />} />
+        <Route path="/shop" element={<Shop add={cartHook.add} wishlist={wishlist} />} />
+        <Route path="/product/:slug" element={<ProductPage add={cartHook.add} wishlist={wishlist} />} />
+        <Route path="/wishlist" element={<Wishlist add={cartHook.add} wishlist={wishlist} />} />
+        <Route path="/cart" element={<Cart {...cartHook} />} />
+        <Route path="/checkout" element={<Checkout cart={cartHook.cart} clear={cartHook.clear} />} />
+        <Route path="/success/:number" element={<Success />} />
+        <Route path="/track" element={<Track />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </Layout>
   );
