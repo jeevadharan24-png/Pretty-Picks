@@ -151,7 +151,7 @@ function Layout({
 
       <header>
         <Link className="logo" to="/">
-          <img src="/logo.jpeg" alt="JP Store" />
+          <img src="/logo.png" alt="JP Store" />
           <span>JP Store</span>
         </Link>
 
