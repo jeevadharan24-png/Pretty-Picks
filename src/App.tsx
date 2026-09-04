@@ -7,6 +7,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import AdminDashboard from "./admin/AdminDashboard";
 
 type Product = {
   id: number;
@@ -1051,8 +1052,7 @@ function Profile() {
             ["orders", "📦 My Orders"],
             ["wishlist", "♡ My Wishlist"],
             ["addresses", "📍 Saved Addresses"],
-            ["payments", "💳 Payments"],
-            ["coupons", "🎟 My Coupons"],
+            ["payments", "💳 Payments"],            
             ["support", "💬 Help & Support"],
           ].map(([id, label]) => (
             <button className={active === id ? "profile-menu active" : "profile-menu"} key={id} onClick={() => setActive(id)}>
@@ -1120,13 +1120,7 @@ function Profile() {
             </div>
           )}
 
-          {active === "coupons" && (
-            <div className="profile-card">
-              <span className="eyebrow">OFFERS</span><h2>My Coupons</h2>
-              <div className="coupon-box"><span>✦</span><div><strong>PRETTY PICKS OFFERS</strong><p>Coupon support can be enabled from the store backend later.</p></div></div>
-              <p className="muted">We have not added a fake discount here because your current order API calculates the final total on the server.</p>
-            </div>
-          )}
+
 
           {active === "support" && (
             <div className="profile-card">
@@ -1150,129 +1144,83 @@ function Admin() {
   const [token, setToken] = useState(localStorage.getItem("admin-token") || "");
   const [email, setEmail] = useState("prettypicks@gmail.com");
   const [password, setPassword] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [form, setForm] = useState({ name: "", description: "", price: "", originalPrice: "", stock: "", image: "" });
-
-  const load = async (t = token) => {
-    if (!t) return;
-    const headers = { Authorization: `Bearer ${t}` };
-    const [p, o] = await Promise.all([
-      fetch("/api/admin/products", { headers }),
-      fetch("/api/admin/orders", { headers }),
-    ]);
-    if (p.ok) setProducts(await p.json());
-    if (o.ok) setOrders(await o.json());
-    if (p.status === 401 || o.status === 401) {
-      localStorage.removeItem("admin-token");
-      setToken("");
-    }
-  };
-
-  useEffect(() => { if (token) load(token); }, [token]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const login = async () => {
     try {
+      setLoading(true);
+      setError("");
       const r = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const d = await r.json();
-      if (!r.ok) return alert(d.error || "Login failed");
+      if (!r.ok) {
+        setError(d.error || "Login failed");
+        return;
+      }
       localStorage.setItem("admin-token", d.token);
       setToken(d.token);
       setPassword("");
-    } catch { alert("Server connection failed"); }
-  };
-
-  const addProduct = async () => {
-    if (!form.name || !form.price || !form.stock || !form.image) return alert("Name, price, stock and image are required.");
-    const r = await fetch("/api/admin/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        name: form.name,
-        description: form.description,
-        price: Number(form.price),
-        originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
-        stock: Number(form.stock),
-        image: form.image,
-      }),
-    });
-    const d = await r.json();
-    if (!r.ok) return alert(d.error || "Failed to add product");
-    setForm({ name: "", description: "", price: "", originalPrice: "", stock: "", image: "" });
-    load();
+    } catch (err) {
+      setError("Server connection failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
     localStorage.removeItem("admin-token");
     setToken("");
-    setProducts([]);
-    setOrders([]);
   };
 
-  if (!token) return (
-    <section className="section narrow admin-login">
-      <div className="admin-login-card">
-        <img src="/logo.jpeg" alt="Pretty Picks" />
-        <span className="eyebrow">PRETTY PICKS</span><h1>Admin Login</h1><p>Manage your Pretty Picks store.</p>
-        <div className="form">
-          <label>Email<input value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-          <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && login()} /></label>
-          <button className="button full" onClick={login}>Login →</button>
-        </div>
-      </div>
-    </section>
-  );
-
-  return (
-    <section className="section admin-section">
-      <div className="admin-head"><div><span className="eyebrow">PRETTY PICKS</span><h1>Admin Dashboard</h1><p>Manage products and orders.</p></div><button className="admin-logout" onClick={logout}>Logout</button></div>
-      <div className="admin-stats">
-        <div><span>Products</span><b>{products.length}</b></div>
-        <div><span>Orders</span><b>{orders.length}</b></div>
-        <div><span>WhatsApp</span><b>Support</b></div>
-      </div>
-      <div className="admin-grid">
-        <div className="admin-panel">
-          <h2>Add Product</h2>
-          <p className="muted">Add a new Pretty Pick to your store.</p>
+  if (!token) {
+    return (
+      <section className="section narrow admin-login">
+        <div className="admin-login-card">
+          <img src="/logo.jpeg" alt="Pretty Picks" />
+          <span className="eyebrow">PRETTY PICKS</span>
+          <h1>Admin Login</h1>
+          <p>Manage your Pretty Picks store.</p>
           <div className="form">
-            <label>Product Name<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-            <label>Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-            <label>Price<input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></label>
-            <label>Original Price<input type="number" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })} /></label>
-            <label>Stock<input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} /></label>
-            <label>Image URL<input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></label>
-            <button className="button" onClick={addProduct}>+ Add Product</button>
+            <label>
+              Email
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !loading && login()}
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !loading && login()}
+              />
+            </label>
+            {error && <div className="error-message">{error}</div>}
+            <button
+              className="button full"
+              onClick={login}
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Login →"}
+            </button>
           </div>
         </div>
+      </section>
+    );
+  }
 
-        <div className="admin-panel">
-          <h2>Products ({products.length})</h2>
-          {products.map((p) => (
-            <div className="admin-item" key={p.id}>
-              <img src={p.image} alt={p.name} /><div><b>{p.name}</b><small>{money(p.price)} · Stock {p.stock}</small></div>
-              <button onClick={async () => { if (!confirm("Delete product?")) return; await fetch(`/api/admin/products/${p.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); load(); }}>Delete</button>
-            </div>
-          ))}
-        </div>
-
-        <div className="admin-panel">
-          <h2>Orders ({orders.length})</h2>
-          {orders.map((o) => (
-            <div className="admin-item" key={o.id}>
-              <div><b>{o.orderNumber}</b><small>{o.customerName} · {money(o.total)}</small></div>
-              <select value={o.orderStatus} onChange={async (e) => { await fetch(`/api/admin/orders/${o.id}/status`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status: e.target.value }) }); load(); }}>
-                {["PENDING","CONFIRMED","PROCESSING","PACKED","SHIPPED","DELIVERED","CANCELLED"].map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+  return (
+    <AdminDashboard
+      token={token}
+      onLogout={logout}
+    />
   );
 }
 

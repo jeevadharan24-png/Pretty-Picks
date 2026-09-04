@@ -7,6 +7,7 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
 model Admin {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -21,53 +22,124 @@ model Category {
 }
 
 model Product {
-  id            Int       @id @default(autoincrement())
+  id            Int     @id @default(autoincrement())
   name          String
-  slug          String    @unique
+  slug          String  @unique
   description   String
   price         Float
   originalPrice Float?
-  stock         Int       @default(0)
-  sku           String?   @unique
+  stock         Int     @default(0)
+  sku           String? @unique
   image         String
-  active        Boolean   @default(true)
-  featured      Boolean   @default(false)
-  bestseller    Boolean   @default(false)
-  categoryId    Int?
-  category      Category? @relation(fields: [categoryId], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  orderItems    OrderItem[]
+  active        Boolean @default(true)
+  featured      Boolean @default(false)
+  bestseller    Boolean @default(false)
+
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Customer {
+  id Int @id @default(autoincrement())
+
+  name  String
+  phone String  @unique
+  email String?
+
+  address String?
+  city    String?
+  state   String?
+  pincode String?
+
+  totalOrders Int   @default(0)
+  totalSpent  Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
 }
 
 model Order {
-  id                Int         @id @default(autoincrement())
-  orderNumber       String      @unique
-  customerName      String
-  phone             String
-  email             String
-  address           String
-  city              String
-  state             String
-  pincode           String
-  subtotal          Float
-  shipping          Float
-  total             Float
-  paymentStatus     String      @default("PENDING")
-  orderStatus       String      @default("PENDING")
+  id Int @id @default(autoincrement())
+
+  orderNumber String @unique
+
+  // Customer relation
+  customerId Int?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  // Customer snapshot
+  customerName String
+  phone        String
+  email        String
+  address      String
+  city         String
+  state        String
+  pincode      String
+
+  // Amounts
+  subtotal Float
+  shipping Float
+  total    Float
+
+  // Payment
+  paymentStatus     String  @default("PENDING")
   razorpayOrderId   String?
   razorpayPaymentId String?
-  items             OrderItem[]
-  createdAt         DateTime    @default(now())
+
+  // Order status
+  orderStatus String @default("PENDING")
+
+  // Relations
+  items         OrderItem[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([orderStatus])
+  @@index([paymentStatus])
+  @@index([createdAt])
 }
 
 model OrderItem {
-  id        Int     @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   orderId   Int
   productId Int
-  name      String
-  price     Float
-  quantity  Int
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
+
+  name     String
+  price    Float
+  quantity Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+
+  type    String
+  title   String
+  message String
+
+  orderId Int?
+  order   Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  read Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([read])
+  @@index([createdAt])
+  @@index([orderId])
 }
