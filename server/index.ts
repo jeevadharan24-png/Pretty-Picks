@@ -1795,7 +1795,7 @@ app.get(
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
-    service: "Pretty Picks API",
+    service: "JP Store API",
     timestamp: new Date().toISOString(),
   });
 });
@@ -1849,7 +1849,7 @@ if (process.env.NODE_ENV !== "production") {
     "0.0.0.0",
     () => {
       console.log(
-        `Pretty Picks server running on http://localhost:${port}`
+        `JP Store server running on http://localhost:${port}`
       );
     }
   );

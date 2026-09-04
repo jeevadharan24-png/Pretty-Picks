@@ -55,7 +55,7 @@ const instagramUrl = "https://www.instagram.com/prettypicks05/";
    Country code + number only. Example: 919876543210 */
 const WHATSAPP_NUMBER = "919962281251";
 
-function waUrl(message = "Hi Pretty Picks, I need help with my order.") {
+function waUrl(message = "Hi JP Store, I need help with my order.") {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
@@ -74,11 +74,11 @@ function writeStorage(key: string, value: unknown) {
 
 function useCart() {
   const [cart, setCart] = useState<CartItem[]>(() =>
-    readStorage<CartItem[]>("Pretty Picks-cart", [])
+    readStorage<CartItem[]>("PJP Store-cart", [])
   );
 
   useEffect(() => {
-    writeStorage("Pretty Picks-cart", cart);
+    writeStorage("JP Store-cart", cart);
   }, [cart]);
 
   const add = (product: Product) =>
@@ -151,8 +151,8 @@ function Layout({
 
       <header>
         <Link className="logo" to="/">
-          <img src="/logo.jpeg" alt="Pretty Picks" />
-          <span>Pretty Picks</span>
+          <img src="/logo.jpeg" alt="JP Store" />
+          <span>JP Store</span>
         </Link>
 
         <nav>
@@ -182,8 +182,8 @@ function Layout({
 
       <footer>
         <div className="footer-brand">
-          <img src="/logo.jpeg" alt="Pretty Picks" />
-          <h2>Pretty Picks</h2>
+          <img src="/logo.jpeg" alt="JP Store" />
+          <h2>JP Store</h2>
           <p>Pick your pretty. ♡</p>
         </div>
 
@@ -202,7 +202,7 @@ function Layout({
         </div>
 
         <div className="footer-bottom">
-          © {new Date().getFullYear()} Pretty Picks · Made with love ♡
+          © {new Date().getFullYear()} JP Store · Made with love ♡
         </div>
       </footer>
     </>
@@ -246,7 +246,7 @@ function ProductCard({
 
       <div className="card-body">
         <div className="product-category">
-          {p.bestseller ? "BESTSELLER" : "PRETTY PICKS"}
+          {p.bestseller ? "BESTSELLER" : "JP Store"}
         </div>
         <Link to={`/product/${p.slug}`}>
           <h3>{p.name}</h3>
@@ -305,7 +305,7 @@ function Home({
     <>
       <section className="hero">
         <div className="hero-content">
-          <span>WELCOME TO PRETTY PICKS</span>
+          <span>WELCOME TO JP Store</span>
           <h1>
             Pick your
             <br />
@@ -330,7 +330,7 @@ function Home({
           </div>
         </div>
         <div className="hero-decoration">
-          <img src="/logo.jpeg" alt="Pretty Picks" />
+          <img src="/logo.jpeg" alt="JP Store" />
         </div>
       </section>
 
@@ -343,7 +343,7 @@ function Home({
             picked for you.
           </h2>
           <p>
-            At Pretty Picks, we believe that the little things make life
+            At JP Store, we believe that the little things make life
             prettier. Explore our handpicked collection made to add a little
             joy to your day.
           </p>
@@ -356,7 +356,7 @@ function Home({
             <div>
               <span className="eyebrow">OUR FAVOURITES</span>
               <h2>Featured Picks</h2>
-              <p>A few pretty picks we think you'll love.</p>
+              <p>A few JP Store we think you'll love.</p>
             </div>
             <Link to="/shop">View all →</Link>
           </div>
@@ -370,7 +370,7 @@ function Home({
             <div>
               <span className="eyebrow">LOVED BY YOU</span>
               <h2>Bestsellers</h2>
-              <p>Our most-loved Pretty Picks.</p>
+              <p>Our most-loved JP Store.</p>
             </div>
             <Link to="/shop">Shop everything →</Link>
           </div>
@@ -381,7 +381,7 @@ function Home({
       <section className="why-section">
         <div className="section-head centered">
           <div>
-            <span className="eyebrow">WHY PRETTY PICKS</span>
+            <span className="eyebrow">WHY JP Store</span>
             <h2>Picked with love ♡</h2>
           </div>
         </div>
@@ -466,7 +466,7 @@ function Shop({
   return (
     <section className="section">
       <div className="shop-hero">
-        <span className="eyebrow">PRETTY PICKS COLLECTION</span>
+        <span className="eyebrow">JP Store COLLECTION</span>
         <h1>Shop Pretty</h1>
         <p>Find something beautiful for yourself or someone special.</p>
       </div>
@@ -502,7 +502,7 @@ function Shop({
       ) : (
         <div className="empty">
           <div className="empty-icon">♡</div>
-          <h2>No pretty picks found</h2>
+          <h2>No JP Store found</h2>
           <p>Try searching for something else.</p>
           <button className="button" onClick={() => setQ("")}>
             View All Products
@@ -559,7 +559,7 @@ function ProductPage({
       </div>
 
       <div className="product-details">
-        <span className="eyebrow">PRETTY PICKS · CURATED FOR YOU</span>
+        <span className="eyebrow">JP Store · CURATED FOR YOU</span>
         <h1>{p.name}</h1>
 
         <div className="big-price">
@@ -590,9 +590,9 @@ function ProductPage({
         </div>
 
         <div className="product-info-box">
-          <div><strong>♡ Carefully Selected</strong><span>Picked with love by Pretty Picks</span></div>
+          <div><strong>♡ Carefully Selected</strong><span>Picked with love by JP Store</span></div>
           <div><strong>✦ Secure Checkout</strong><span>Safe & secure online payment</span></div>
-          <div><strong>↺ Need Help?</strong><a href={waUrl(`Hi Pretty Picks, I have a question about ${p.name}.`)} target="_blank" rel="noreferrer">Chat on WhatsApp</a></div>
+          <div><strong>↺ Need Help?</strong><a href={waUrl(`Hi JP Store, I have a question about ${p.name}.`)} target="_blank" rel="noreferrer">Chat on WhatsApp</a></div>
         </div>
       </div>
     </section>
@@ -620,7 +620,7 @@ function Wishlist({
         <div>
           <span className="eyebrow">SAVED FOR LATER</span>
           <h1>My Wishlist</h1>
-          <p>Your favourite Pretty Picks, all in one place.</p>
+          <p>Your favourite JP Store, all in one place.</p>
         </div>
       </div>
       {!saved.length ? (
@@ -663,7 +663,7 @@ function Cart({
   return (
     <section className="section cart-section">
       <div className="section-head">
-        <div><span className="eyebrow">YOUR PRETTY PICKS</span><h1>Your Cart</h1><p>Review your items before checkout.</p></div>
+        <div><span className="eyebrow">YOUR JP Store</span><h1>Your Cart</h1><p>Review your items before checkout.</p></div>
       </div>
 
       {!cart.length ? (
@@ -797,8 +797,8 @@ function Checkout({ cart, clear }: { cart: CartItem[]; clear: () => void }) {
             key: data.razorpay.key,
             amount: data.razorpay.amount,
             currency: data.razorpay.currency,
-            name: "Pretty Picks",
-            description: "Pretty Picks Order",
+            name: "JP Store",
+            description: "JP Store Order",
             order_id: data.razorpay.id,
             prefill: { name: form.name, email: form.email, contact: form.phone },
             theme: { color: "#c9828e" },
@@ -909,7 +909,7 @@ function Success() {
         <div className="success-icon">✓</div>
         <span className="eyebrow">THANK YOU ♡</span>
         <h1>Order Placed!</h1>
-        <p>Your Pretty Picks order has been received successfully.</p>
+        <p>Your JP Store order has been received successfully.</p>
         <div className="order-number"><small>ORDER NUMBER</small><strong>{number}</strong></div>
         <div className="success-actions">
           <Link className="button" to="/profile">My Orders</Link>
@@ -950,7 +950,7 @@ function Track() {
       <div className="track-heading">
         <span className="eyebrow">ORDER STATUS</span>
         <h1>Track Your Order</h1>
-        <p>Enter your Pretty Picks order number to see the latest status.</p>
+        <p>Enter your JP Store order number to see the latest status.</p>
       </div>
       <div className="track-card">
         <div className="track">
@@ -973,7 +973,7 @@ function Track() {
             <div className="order-detail"><span>Order Status</span><b>{order.orderStatus}</b></div>
             <div className="order-detail"><span>Payment</span><b>{order.paymentStatus}</b></div>
             <div className="order-detail"><span>Total</span><b>{money(order.total)}</b></div>
-            <a className="whatsapp-button" href={waUrl(`Hi Pretty Picks, I need help with order ${order.orderNumber}.`)} target="_blank" rel="noreferrer">💬 Ask about this order</a>
+            <a className="whatsapp-button" href={waUrl(`Hi JP Store, I need help with order ${order.orderNumber}.`)} target="_blank" rel="noreferrer">💬 Ask about this order</a>
           </div>
         )}
       </div>
@@ -1040,7 +1040,7 @@ function Profile() {
         <div className="profile-avatar">{profile.name ? profile.name[0].toUpperCase() : "P"}</div>
         <div>
           <span className="eyebrow">MY ACCOUNT</span>
-          <h1>{profile.name ? `Hello, ${profile.name}` : "Welcome to Pretty Picks"}</h1>
+          <h1>{profile.name ? `Hello, ${profile.name}` : "Welcome to JP Store"}</h1>
           <p>Manage your profile, orders, wishlist and saved addresses.</p>
         </div>
       </div>
@@ -1126,7 +1126,7 @@ function Profile() {
             <div className="profile-card">
               <span className="eyebrow">CUSTOMER CARE</span><h2>Help & Support</h2>
               <p>Need help with an order, product, delivery or payment?</p>
-              <a className="whatsapp-button" href={waUrl()} target="_blank" rel="noreferrer">💬 Chat with Pretty Picks on WhatsApp</a>
+              <a className="whatsapp-button" href={waUrl()} target="_blank" rel="noreferrer">💬 Chat with JP Store on WhatsApp</a>
               <div className="support-options">
                 <Link to="/track">📦 Track an Order</Link>
                 <Link to="/shop">🛍 Browse Products</Link>
@@ -1180,10 +1180,10 @@ function Admin() {
     return (
       <section className="section narrow admin-login">
         <div className="admin-login-card">
-          <img src="/logo.jpeg" alt="Pretty Picks" />
-          <span className="eyebrow">PRETTY PICKS</span>
+          <img src="/logo.jpeg" alt="JP Store" />
+          <span className="eyebrow">JP Store</span>
           <h1>Admin Login</h1>
-          <p>Manage your Pretty Picks store.</p>
+          <p>Manage your JP Store store.</p>
           <div className="form">
             <label>
               Email
